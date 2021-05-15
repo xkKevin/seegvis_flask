@@ -1,6 +1,7 @@
 // 外部的 js 文件可以使用html中 js 定义的变量、函数等，不同js文件中的函数也可以相互调用！
 var formatNum = (float) => parseFloat(parseFloat(float).toFixed(4));
 var out_height_fun = (n) => n <= 25 ? 24 * n + 200 : 10*(n - 25) + 800; // (n) => 20*n + 250;
+/*
 $("#nav-1 a").on("click", function() {
     var position = $(this)
         .parent()
@@ -40,6 +41,7 @@ var currentWidth = $("#nav-1 .system_nav")
     .width();
 var current = $(".system_nav .active").position();
 $("#nav-1 .slide1").css({ left: +current.left, width: currentWidth });
+*/
 
 function distanceChartbyType(e, type) { // type：2, 3, 4
     $(e).siblings().removeClass("btn-warning").addClass("btn-default");
@@ -185,7 +187,7 @@ function readToArray(data) {
 function showCoordinate(obj) {
     let files = obj.files;
     // console.log(files,files[0].name);
-    $("#coordinate_file_name").text("当前坐标文件为：" + files[0].name);
+    $("#coordinate_file_name").text("当前坐标文件：" + files[0].name);
     if (files[0]) {
         var reader = new FileReader();
         reader.readAsText(files[0]);
@@ -284,7 +286,7 @@ function showCoordinate(obj) {
                 }
             }
             $("#codination").remove();
-            var newM = $("<div id='codination' style='width: 85%;height:500px;' align='center'></div>");
+            var newM = $("<div id='codination' style='width: 98%;height:100%;' align='center'></div>");
             newM.appendTo($("#electrodes"));
             // console.log(co_data);
             scatter3D(co_data,'codination');

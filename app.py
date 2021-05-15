@@ -1,6 +1,5 @@
 from flask import Flask, request
 from flask import render_template, jsonify
-# import process_corpus as pc
 
 import os
 import scipy.io as sio
@@ -560,8 +559,6 @@ def exitSystem():
                 os.remove(out_result)
         return jsonify({"result": "True"})
     return jsonify({"result": "False"})
-
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port= 80)

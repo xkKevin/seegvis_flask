@@ -30,478 +30,384 @@
     <script src="/static/js/d3-scale-chromatic.v1.min.js"></script>
 
     <link rel="stylesheet" href="/static/css/seegvis.css">
-    <!-- 下面是css内容-->
-    <style>
-        html,body, div {
-            margin: 0;
-            padding: 0;
-        }
-        html{
-            height: 100%;
-        }
-        body{
-            background-color: #F9FAFB;
-            align-items: center;
-            height: 100%;
-        }
-        .Window {
-            width: 100%;
-            height: 100%;
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            grid-template-rows: 40px repeat(16, 1fr);
-            grid-auto-flow: row;
-            gap: 6px;
-            margin:0 auto
-        }
-        .TitleHead {
-            grid-column: 1/4;
-            padding-top: 8px;
-        }
-        .BlockTitle1 {
-            font-size: 21px;
-            font-family: Roboto;
-            color: #f77062;
-            opacity: 1;
-            text-align: center;
-        }
-        .BlockTitle3 {
-            font-size: 15px;
-            font-family: .PingFang SC;
-            color: #07b8ac;
-            -webkit-text-stroke: 1 rgba(0, 0, 0, 0);
-            text-stroke: 1 rgba(0, 0, 0, 0);
-            opacity: 1;
-            margin-left: 2.25%;
-            margin-top: 2%;
-        }
-        .Block {
-            position: relative;
-            background: #ffffff;
-            box-shadow: 0px 5px 6px rgba(0, 0, 0, 0.1);
-            opacity: 1;
-            border-radius: 9px;
-        }
-        #Title {
-            position: relative;
-            background: linear-gradient(45deg, #07b8ac 0%, #00cfc0 100%);
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-            opacity: 1;
-            border-radius: 11px;
-            font-size: 18px;
-            font-family: .PingFang SC;
-            color: #ffffff;
-            letter-spacing: 8px;
-            opacity: 1;
-            justify-self: start;
-            text-align: center;
-            vertical-align: middle;
-            display: inline-block;
-        }
-        #Patient {
-            position: relative;
-            grid-row-start: span 8;
-        }
-        #Coordinate {
-            position: relative;
-            grid-row-start: span 8;
-        }
-        #Line {
-            position: relative;
-            grid-row-start: span 8;
-        }
-        #Violin {
-            position: relative;
-            grid-row-start: span 8;
-        }
-        #Distance {
-            position: relative;
-            grid-row-start: span 8;
-        }
-        #Out {
-            position: relative;
-            grid-row-start: span 8;
-        }
-    </style>
-
+    <script src="https://pv.sohu.com/cityjson?ie=utf-8"></script>
 </head>
-<body>
-    <div class = "Window">
-        <div class = "TitleHead">
-            <div id = "Title">SEEGVIS</div>
-            <form method="post" action="/" enctype="multipart/form-data" style="display: inline;padding-left: 30px;">
-                {% if not fc_info %}
-                    请上传mat格式文件：<input type="file" accept=".mat" name="up_file" class="file_mat button"/>
-                    <input type="submit" value="提交" class="submit_mat button"/><br>
-                {% else %}
-                    更改数据文件：<input type="file" accept=".mat" name="up_file" class="file_mat button"/>
-                    <input type="submit" value="更改" class="submit_mat button"/>
-                    <span style="padding-left: 20px;">当前上传的数据文件为：<font color="red">{{ file_name }}</font></span>
-                {% endif %}
-                <input type="hidden" value="{{ userid }}" name="userid"/>
-            </form>
-        </div>
+<body style="min-width: 900px;">
+<div id="nav-1">
+    <ul class="system_nav">
+        <li class="slide1"></li>
+        <li class="slide2"></li>
+        <li class="system_name">SEEGVIS</li>
+        <li><a  name="0" class="active">基本信息</a></li>
+        <li><a name="1" >空间坐标</a></li>
+        <li><a name="2" >折线图</a></li>
+        <li><a name="3" >小提琴图</a></li>
+        <li><a name="4" >距离分段分析</a></li>
+        <li><a name="5" >OUT 分析</a></li>
+        <li style="position: absolute; right: 30px; line-height: 2.75;"><span class="badge" id="systemGuide" title="查看使用说明">系统指南</span></li>
+    </ul>
+</div>
 
-        <div class = "Block" id = "Patient">
-            <div class = "BlockTitle1">Patient</div>
-            <div style="margin-top: 10px; overflow: auto; height: calc(100% - 40px)">
-                {% if fc_info %}
-                <table align="center" class="table tab1 table-bordered" style="text-align: center;max-width: 96%">
-                    <tbody>
-                    {% for key,value in fc_info.items() %}
-                        <tr class="active">
-                            <td>{{ key }}</td>
-                            {% if key == 'electrode_names' %}
-                                <td>
-                                {% for item in value %}
-                                    {{ loop.index0 }}:&nbsp;{{ item }};&nbsp;
-                                {% endfor %}
-                                </td>
-                            {% else %}
-                                <td>{{ value }}</td>
-                            {% endif %}
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                <div class="args_control" style="vertical-align: top; margin-left: 10px;">
-                    <h3 style="margin-top: 0">控制面板&nbsp;(DashBoard)</h3>
-                    <div style="margin-top: 25px;">
-                        <b>筛选通道：</b>
-                        <select id="select_channels" class="selectpicker" multiple data-live-search="true" data-actions-box="true">
-                            {% for electrode in fc_info.electrode_names %}
-                                <option value="{{ loop.index0 }}">{{ electrode }}</option>
-                            {% endfor %}
-                        </select>
-                        <button class="btn btn-primary" onclick="referZone()">参考区域</button>
-                        &nbsp;&nbsp;&nbsp;已选择&nbsp;<span id="electrodes_num" style="color:red;"></span>&nbsp;个通道
-                    </div>
-                    <div style="margin-top: 25px;">
-                        <b>筛选时间：{{ fc_info.start }}</b>&nbsp;&nbsp;&nbsp;&nbsp;
-                        <input id="time_slider" type="text"/><b>&nbsp;&nbsp;&nbsp;&nbsp;
-                        {{ fc_info.end }}</b>
-                    </div>
-                    <div style="margin-top: 25px;">
-                        <b>设置阈值：</b>
-                        <input id="h2_threshold" type="text" value="0" maxlength="12" onkeyup="value=value.replace(/[^.\d]/g,'')">
-                    </div>
-                    <div style="margin-top: 25px;">
-                        <b>筛选子波：</b>
-                        <select id="select_wave" class="selectpicker">
-                            <option>Any Wave</option>
-                            <option>Delta</option>
-                            <option>Theta</option>
-                            <option>Alpha</option>
-                            <option>Beta</option>
-                            <option>Gamma</option>
-                            <option>Gamma2</option>
-                            <option>Ripple</option>
-                            <option>Fast Ripple</option>
-                        </select>
-                        &nbsp;&nbsp;<span style="color:red;">筛选子波功能暂未实现！</span>
-                    </div>
-                    <div style="margin-top: 25px;">
-                        <div style="display: inline-block;vertical-align: top; margin-top: 8px;"><b>确定区域：</b></div>
-                        <label style="width:200px;">
-                            <div class="input-group">
-                                <span class="input-group-addon">EZ</span>
-                                <input class="form-control" type="text" id="EZ" onkeyup="value=value.replace(/[^,\- \d]/g,'')">
-                            </div>
-                        </label>
-                        <label style="width:200px;">
-                            <div class="input-group">
-                                <span class="input-group-addon">PZ</span>
-                                <input class="form-control" type="text" id="PZ" onkeyup="value=value.replace(/[^,\- \d]/g,'')">
-                            </div>
-                        </label>
-                        <label style="width:200px;">
-                            <div class="input-group">
-                                <span class="input-group-addon">NIZ</span>
-                                <input class="form-control" type="text" id="NIZ" onkeyup="value=value.replace(/[^,\- \d]/g,'')">
-                            </div>
-                        </label>
-                    </div>
-                    <div style="margin-top:10px;">
-                        <button class="btn btn-default" onclick="assignZone()">参考坐标</button>&nbsp;
-                        <button class="btn btn-success" onclick="select_confirm()">确认选择</button>&nbsp;
-                        <button class="btn btn-warning" onclick="select_reset()">恢复默认</button>&nbsp;&nbsp;
-                        <div id="select_confirm" style="display:inline-block;font-size: larger; text-align: left;"></div>
-                    </div>
-                </div>
-                <div style="margin-top: 20px; text-align: center">
-                    <div>
-                        <label>
-                            <span class="btn btn-primary"> 
-                                读取标记文件<input type="file" accept=".txt,.csv" style="display: none;" multiple onchange="readFromCsv(this,readToArray)">
-                            </span>
-                        </label>
-                        <button class="btn btn-primary" onclick="saveMarks()">保存时间标记</button>
-                        <button class="btn btn-primary" data-toggle="modal" data-target="#myModal"
-                                onclick=$("#operate_type").text("新增")>新增时间标记</button>
-                        <button class="btn btn-primary" onclick=$("#time_marks").empty()>清空所有标记</button>
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <table class="table table-bordered" align="center" style="width: 72%">
-                            <thead>
-                                <tr>
-                                    <th width="145px;">标记名</th>
-                                    <th width="135px;">起始时间</th>
-                                    <th width="135px;">终止时间</th>
-                                    <th style="min-width: 160px;">描述</th>
-                                    <th width="250px;">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="time_marks">
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true" onclick="cancel()">
-                                        &times;
-                                    </button>
-                                    <h4 class="modal-title" id="myModalLabel">
-                                        <span id="operate_type"></span>时间标记
-                                    </h4>
-                                </div>
-                                <div class="modal-body">
-                                    <div style="display: inline-block; width: 34%;">
-                                        <div class="input-group">
-                                            <span class="input-group-addon">标记名</span>
-                                            <input id="add_name" type="text" class="form-control">
-                                        </div>
-                                    </div>
-                                    <div style="display: inline-block; width: 32%;">
-                                        <div class="input-group">
-                                            <span class="input-group-addon">起始时间</span>
-                                            <input id="add_start" type="text" class="form-control" onkeyup="value=value.replace(/[^.\d]/g,'')">
-                                        </div>
-                                    </div>
-                                    <div style="display: inline-block; width: 32%;">
-                                        <div class="input-group">
-                                            <span class="input-group-addon">终止时间</span>
-                                            <input id="add_end" type="text" class="form-control" onkeyup="value=value.replace(/[^.\d]/g,'')">
-                                        </div>
-                                    </div>
-                                    <div class="input-group">
-                                        <span class="input-group-addon">描述</span>
-                                        <input id="add_desc" type="text" class="form-control">
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-default" data-dismiss="modal" onclick="cancel()">取消</button>
-                                    <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="operateMarks()">
-                                        确定
-                                    </button>
-                                </div>
-                            </div><!-- /.modal-content -->
-                        </div><!-- /.modal -->
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
+<div style="margin-bottom: 65px;"></div>
 
-        <div class = "Block" id = "Line">
-            <div class = "BlockTitle3">Line Chart</div>
-            <div style="margin-left: 8px; overflow: auto; height: calc(100% - 40px)">
-                <table>
-                    <tbody>
-                    <tr>
-                        <td style="padding-right: 20px;">
-                            <div class="input-group">
-                                <span class="input-group-addon">信号1（S1）</span>
-                                <input class="form-control" type="text" id="s1">
-                            </div>
-                        </td>
-                        <td style="padding-right: 10px">
-                            <div class="input-group">
-                                <span class="input-group-addon">信号2（S2）</span>
-                                <input class="form-control" type="text" id="s2">
-                            </div>
-                        </td>
+<div class="system_module">
+    <form method="post" action="/" enctype="multipart/form-data" style="padding-left: 20px;">
+        {% if not fc_info %}
+            请上传mat格式文件：<input type="file" accept=".mat" name="up_file" class="file_mat button"/>
+            <input type="submit" value="提交" class="submit_mat button"/><br>
+        {% else %}
+            更改数据文件：<input type="file" accept=".mat" name="up_file" class="file_mat button"/>
+            <input type="submit" value="更改" class="submit_mat button"/><br>
+        {% endif %}
+        <input type="hidden" value="{{ userid }}" name="userid"/>
+    </form>
+    {% if fc_info %}
+    <div style="font-size: 26px;font-weight: bold;text-align: center;margin-bottom: 15px;margin-top: 10px;">
+        当前上传的数据文件为：<font color="red">{{ file_name }}</font>
+    </div>
+    <div style="display: inline-block;width: 50%;">
+        <table align="center" class="table tab1 table-bordered" style="text-align: center;max-width: 96%">
+            <tbody>
+            {% for key,value in fc_info.items() %}
+                <tr class="active">
+                    <td>{{ key }}</td>
+                    {% if key == 'electrode_names' %}
                         <td>
-                            <label class="btn btn-success" onclick="getH2()">提交</label>
+                        {% for item in value %}
+                            {{ loop.index0 }}:&nbsp;{{ item }};&nbsp;
+                        {% endfor %}
                         </td>
-                    </tr>
-                    </tbody>
-                </table>
-                <!-- Create a div where the graph will take place -->
-                <div id="my_dataviz" style="margin-top: 20px;"></div>
-            </div>
+                    {% else %}
+                        <td>{{ value }}</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="args_control" style="display: inline-block; width: 48%; vertical-align: top; margin-left: 10px;">
+        <h3 style="margin-top: 0">控制面板&nbsp;(DashBoard)</h3>
+        <div style="margin-top: 25px;">
+            <b>筛选通道：</b>
+            <select id="select_channels" class="selectpicker" multiple data-live-search="true" data-actions-box="true">
+                {% for electrode in fc_info.electrode_names %}
+                    <option value="{{ loop.index0 }}">{{ electrode }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-primary" onclick="referZone()">参考区域</button>
+            &nbsp;&nbsp;&nbsp;已选择&nbsp;<span id="electrodes_num" style="color:red;"></span>&nbsp;个通道
         </div>
-        <div class = "Block" id = "Violin">
-            <div class = "BlockTitle3">Violin Chart</div>
-            <div id="analyse" style="margin-left: 8px; overflow: auto; height: calc(100% - 40px)">
-                <table style="margin-bottom: 15px;" align="center">
-                    <tbody>
-                    <tr>
-                        <td>
-                            <b style="font-size: larger;">调整小提琴图 bins</b>
-                        </td>
-                        <td style="padding-left: 10px;padding-right: 8px;">
-                            <input id="violin_bins" type="text"/>
-                        </td>
-                        <td style="padding-left: 10px;" title="切换模式：显示点或显示四分位">
-                            <input type="checkbox" id="violin_status" checked>
-                        </td>
-                        <td style="padding-left: 10px;">
-                            <label class="btn btn-success" onclick="fcAnalyse()">FC分析</label>
-                        </td>
-                        <td style="padding-left: 10px;">
-                            <label class="btn btn-success" onclick="violin_play()">播放</label>
-                        </td>
-                        <td style="padding-left: 10px;">
-                            <label class="btn btn-success" onclick="violin_pause(this)" id="play_pause">暂停</label>
-                        </td>
-
-                        <td >
-                            <a id="fc_result" style="margin-left: 15px;visibility: hidden;cursor: pointer;" onclick="downloadFCResult()">下载FC计算结果</a>
-                        </td>
-                        <td >
-                            <a id="fc_result_s" style="margin-left: 15px;visibility: hidden;cursor: pointer;" onclick="downloadFCStatistic()">下载FC统计结果</a>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-                <!-- Create a div where the graph will take place -->
-                <div id="violinTimeDiv" style="margin-left: 360px;display: none;">
-                    <label id="lastTime" onclick="last_time()" class="btn-sm btn-default ctlTime" style="visibility: hidden;">上一时刻</label>
-                    &nbsp;当前时间为：<span id="violinTimeSpan" style="color:red;"></span>&nbsp;
-                    <label id="nextTime" onclick="fc_play()" class="btn-sm btn-default ctlTime">下一时刻</label>
-                </div>
-                <div id="violinBwt" style="margin-top: -15px;">
-                    <div id="violinLeft" style="width:1000px;float:left; text-align: center;margin-left: 10px;"></div>
-                    <div id="violinRight" style="width:300px;float:left; text-align: center;"></div>
-                </div>
-            </div>
+        <div style="margin-top: 25px;">
+            <b>筛选时间：{{ fc_info.start }}</b>&nbsp;&nbsp;&nbsp;&nbsp;
+            <input id="time_slider" type="text"/><b>&nbsp;&nbsp;&nbsp;&nbsp;
+            {{ fc_info.end }}</b>
         </div>
-
-        <div class = "Block" id = "Coordinate">
-            <div class = "BlockTitle3">Coordinate</div>
-            <div style="padding-left: 10px;">
-                上传电极点空间坐标：<input type="file" accept=".txt,.csv" id="coordinate_file" class="button"
-                                     onchange="showCoordinate(this)"/>
-                <span id="coordinate_file_name"></span>
-            </div>
-            <div id="electrodes" style="margin-top: 10px; padding-left: 15px; height: calc(100% - 80px)"></div>
+        <div style="margin-top: 25px;">
+            <b>设置阈值：</b>
+            <input id="h2_threshold" type="text" value="0" maxlength="12" onkeyup="value=value.replace(/[^.\d]/g,'')">
         </div>
-
-        <div class = "Block" id = "Distance">
-            <div class = "BlockTitle3">Distance Segment Analysis</div>
-            <div style="margin-left: 8px; overflow: auto; height: calc(100% - 40px)">
-                <table>
-                    <tbody>
-                    <tr>
-                        <td>
-                            <b style="font-size: larger;">调整小提琴图 bins</b>
-                        </td>
-                        <td style="padding-left: 10px;padding-right: 8px;">
-                            <input id="violin_bins2" type="text"/>
-                        </td>
-                        <td style="padding-left: 10px;" title="切换模式：显示点或显示四分位">
-                            <input type="checkbox" id="violin_status2" checked>
-                        </td>
-                        <td style="padding-left: 10px;">
-                            <div class="input-group">
-            {#                    <span class="input-group-addon">距离间隔大小（cm）</span>#}
-                                <input class="form-control" type="text" id="distance_interval" onkeyup="value=value.replace(/[^.\d]/g,'')" placeholder="请输入距离间隔（mm）" style="width: 168px;">
-                                <label class="input-group-addon btn btn-success" onclick="distanceAnalyse()">提交</label>
-                            </div>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-                <div id="distance_hide_div" style="display: none;margin-top: 20px;">
-                    分析类型：
-                    <span>
-                        <button id = "distance_vis_default" class="btn btn-default distance_button" onclick="distanceChartbyType(this,2)">H2</button>
-                        <button class="btn btn-default distance_button" onclick="distanceChartbyType(this,3)">NWD</button>
-                        <button class="btn btn-default distance_button" onclick="distanceChartbyType(this,4)">WD</button>
-                    </span>
-                    <a style="margin-left: 10px;cursor: pointer;" onclick="downloadDistanceResult()">下载计算结果</a>
-                    <a style="margin-left: 15px;cursor: pointer;" onclick="downloadDistanceStatistic()">下载统计结果</a>
-
-                </div>
-                <!-- Create a div where the graph will take place -->
-                <div id="distance_vis" style="margin-top: 20px;"></div>
-            </div>
+        <div style="margin-top: 25px;">
+            <b>筛选子波：</b>
+            <select id="select_wave" class="selectpicker">
+                <option>Any Wave</option>
+                <option>Delta</option>
+                <option>Theta</option>
+                <option>Alpha</option>
+                <option>Beta</option>
+                <option>Gamma</option>
+                <option>Gamma2</option>
+                <option>Ripple</option>
+                <option>Fast Ripple</option>
+            </select>
+            &nbsp;&nbsp;<span style="color:red;">筛选子波功能暂未实现！</span>
         </div>
-
-        <div class = "Block" id = "Out">
-            <div class = "BlockTitle3">Out Analysis</div>
-            <div style="margin-left: 8px; overflow: auto; height: calc(100% - 40px)">
-                <div style="display: none;">
-                    <div id="out_result" style="margin-left: 12px; display: none;">
-                        OUT LINKS:<br>
-                        <span id="out_links"></span><br>
-                        IN LINKS:<br>
-                        <span id="in_links"></span><br>
-                        <a id="out_result_dl" href="static/data/out_result_{{ userid }}.xls" download="out_result" style="cursor: pointer;">下载&nbsp;OUT&nbsp;分析结果</a>
-                        <a id="out_result_s" style="margin-left: 20px;visibility: hidden;cursor: pointer;" onclick="downloadOUTStatistic()">下载区域统计结果</a>
-                        <hr style="margin-top: 6px; margin-bottom: 18px;">
-                    </div>
+        <div style="margin-top: 25px;">
+            <div style="display: inline-block;vertical-align: top; margin-top: 8px;"><b>确定区域：</b></div>
+            <label style="width:200px;">
+                <div class="input-group">
+                    <span class="input-group-addon">EZ</span>
+                    <input class="form-control" type="text" id="EZ" onkeyup="value=value.replace(/[^,\- \d]/g,'')">
                 </div>
-                <table align="center">
-                    <td style="width: 168px;">
-                        <b style="font-size: larger;">当前h2阈值为：<span id="h2_threshold_value" style="color: red">0</span></b>
-                    </td>
-                    <td style="padding-right: 20px;">
-                        <input id="h2_threshold2" class="form-control" type="text"/>
-                    </td>
-                    <td>
-                        <button class="btn btn-default" onclick="outAnalyse(this,'OUT')">OUT</button>
-                        <button class="btn btn-default" onclick="outAnalyse(this,'OUT/IN')">OUT / IN</button>
-                        <button class="btn btn-default" onclick="outAnalyse(this,'OUT-IN')">OUT - IN</button>
-                        <button class="btn btn-default" onclick="outAnalyse(this,'IN')">IN</button>
-                    </td>
-                    <td style="padding-left: 15px;">
-                        <select id="zone_analyse_type" class="selectpicker" data-width="auto">
-                            <option>median</option>
-                            <option>mean</option>
-                            <option>sum</option>
-                            <option>max</option>
-                            <option>min</option>
-                        </select>
-                        <button class="btn btn-warning" onclick="outZoneAnalyse()">区域分析</button>
-                    </td>
-                </table>
-                <div id="out_chart" style="display: none; margin-top: 15px;">
-                    <!--
-                    <div id="out_in_river" style="display: inline-block;height: 500px; width: 58%; min-width: 800px"></div>
-                    <div id="out_in_heat" style="display: inline-block;height: 500px; width: 40%; min-width: 600px"></div>
-                    -->
-                    <div id="out_in_river" style="width: 58%; float: left"></div>
-                    <div style="width: 42%; float: left" align="center">
-                        <table>
-                            <tbody>
-                            <tr>
-                                <td style="padding-right: 10px;">
-                                    <div class="input-group">
-                                        <span class="input-group-addon">min</span>
-                                        <input class="form-control" type="text" id="bar_min" onkeyup="value=value.replace(/[^-.\d]/g,'')" style="width: 5em;">
-                                    </div>
-                                </td>
-                                <td style="padding-right: 10px">
-                                    <div class="input-group">
-                                        <span class="input-group-addon">max</span>
-                                        <input class="form-control" type="text" id="bar_max" onkeyup="value=value.replace(/[^.\d]/g,'')" style="width: 5em;">
-                                    </div>
-                                </td>
-                                <td>
-                                    <label class="btn btn-success" onclick="reset_heatmap()">重绘</label>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                        <div id="out_in_heat"></div>
-                    </div>
+            </label>
+            <label style="width:200px;">
+                <div class="input-group">
+                    <span class="input-group-addon">PZ</span>
+                    <input class="form-control" type="text" id="PZ" onkeyup="value=value.replace(/[^,\- \d]/g,'')">
                 </div>
-            </div>
+            </label>
+            <label style="width:200px;">
+                <div class="input-group">
+                    <span class="input-group-addon">NIZ</span>
+                    <input class="form-control" type="text" id="NIZ" onkeyup="value=value.replace(/[^,\- \d]/g,'')">
+                </div>
+            </label>
+        </div>
+        <div style="margin-top:10px;">
+            <button class="btn btn-default" onclick="assignZone()">参考坐标</button>&nbsp;
+            <button class="btn btn-success" onclick="select_confirm()">确认选择</button>&nbsp;
+            <button class="btn btn-warning" onclick="select_reset()">恢复默认</button>&nbsp;&nbsp;
+            <div id="select_confirm" style="display:inline-block;font-size: larger; text-align: left;"></div>
         </div>
     </div>
+    <div style="margin-top: 20px; text-align: center">
+        <div>
+            <label>
+                <span class="btn btn-primary"> 
+                    读取标记文件<input type="file" accept=".txt,.csv" style="display: none;" multiple onchange="readFromCsv(this,readToArray)">
+                </span>
+            </label>
+            <button class="btn btn-primary" onclick="saveMarks()">保存时间标记</button>
+            <button class="btn btn-primary" data-toggle="modal" data-target="#myModal"
+                    onclick=$("#operate_type").text("新增")>新增时间标记</button>
+            <button class="btn btn-primary" onclick=$("#time_marks").empty()>清空所有标记</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <table class="table table-bordered" align="center" style="width: 72%">
+                <thead>
+                    <tr>
+                        <th width="145px;">标记名</th>
+                        <th width="135px;">起始时间</th>
+                        <th width="135px;">终止时间</th>
+                        <th style="min-width: 160px;">描述</th>
+                        <th width="250px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="time_marks">
+                </tbody>
+            </table>
+        </div>
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" onclick="cancel()">
+                            &times;
+                        </button>
+                        <h4 class="modal-title" id="myModalLabel">
+                            <span id="operate_type"></span>时间标记
+                        </h4>
+                    </div>
+                    <div class="modal-body">
+                        <div style="display: inline-block; width: 34%;">
+                            <div class="input-group">
+                                <span class="input-group-addon">标记名</span>
+                                <input id="add_name" type="text" class="form-control">
+                            </div>
+                        </div>
+                        <div style="display: inline-block; width: 32%;">
+                            <div class="input-group">
+                                <span class="input-group-addon">起始时间</span>
+                                <input id="add_start" type="text" class="form-control" onkeyup="value=value.replace(/[^.\d]/g,'')">
+                            </div>
+                        </div>
+                        <div style="display: inline-block; width: 32%;">
+                            <div class="input-group">
+                                <span class="input-group-addon">终止时间</span>
+                                <input id="add_end" type="text" class="form-control" onkeyup="value=value.replace(/[^.\d]/g,'')">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-addon">描述</span>
+                            <input id="add_desc" type="text" class="form-control">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" onclick="cancel()">取消</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="operateMarks()">
+                            确定
+                        </button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="system_module"  style="display: none;">
+    <div style="padding-left: 20px;">
+        请上传对应电极点的空间坐标：<input type="file" accept=".txt,.csv" id="coordinate_file" class="button"
+                             onchange="showCoordinate(this)"/>
+        <span id="coordinate_file_name"></span>
+    </div>
+    <div id="electrodes" style="margin-top: 10px;"></div>
+</div>
+
+<div class="system_module" style="display: none;" align="center">
+    <table>
+        <tbody>
+        <tr>
+            <td style="padding-right: 20px;">
+                <div class="input-group">
+                    <span class="input-group-addon">信号1（S1）</span>
+                    <input class="form-control" type="text" id="s1">
+                </div>
+            </td>
+            <td style="padding-right: 10px">
+                <div class="input-group">
+                    <span class="input-group-addon">信号2（S2）</span>
+                    <input class="form-control" type="text" id="s2">
+                </div>
+            </td>
+            <td>
+                <label class="btn btn-success" onclick="getH2()">提交</label>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <!-- Create a div where the graph will take place -->
+    <div id="my_dataviz" style="margin-top: 20px;"></div>
+</div>
+
+<div class="system_module"  style="display: none;">
+    <div id="analyse">
+        <table style="margin-bottom: 15px;" align="center">
+            <tbody>
+            <tr>
+                <td>
+                    <b style="font-size: larger;">调整小提琴图 bins</b>
+                </td>
+                <td style="padding-left: 10px;padding-right: 8px;">
+                    <input id="violin_bins" type="text"/>
+                </td>
+                <td style="padding-left: 10px;" title="切换模式：显示点或显示四分位">
+                    <input type="checkbox" id="violin_status" checked>
+                </td>
+                <td style="padding-left: 10px;">
+                    <label class="btn btn-success" onclick="fcAnalyse()">FC分析</label>
+                </td>
+                <td style="padding-left: 10px;">
+                    <label class="btn btn-success" onclick="violin_play()">播放</label>
+                </td>
+                <td style="padding-left: 10px;">
+                    <label class="btn btn-success" onclick="violin_pause(this)" id="play_pause">暂停</label>
+                </td>
+                <td >
+                    <a id="fc_result" style="margin-left: 15px;visibility: hidden;cursor: pointer;" onclick="downloadFCResult()">下载FC计算结果</a>
+                </td>
+                <td >
+                    <a id="fc_result_s" style="margin-left: 15px;visibility: hidden;cursor: pointer;" onclick="downloadFCStatistic()">下载FC统计结果</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <!-- Create a div where the graph will take place -->
+        <div id="violinTimeDiv" style="margin-left: 360px;display: none;">
+            <label id="lastTime" onclick="last_time()" class="btn-sm btn-default ctlTime" style="visibility: hidden;">上一时刻</label>
+            &nbsp;当前时间为：<span id="violinTimeSpan" style="color:red;"></span>&nbsp;
+            <label id="nextTime" onclick="fc_play()" class="btn-sm btn-default ctlTime">下一时刻</label>
+        </div>
+        <div id="violinBwt" style="margin-top: -15px;">
+            <div id="violinLeft" style="width:1000px;float:left; text-align: center;margin-left: 10px;"></div>
+            <div id="violinRight" style="width:300px;float:left; text-align: center;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="system_module"  style="display: none;" align="center">
+    <table>
+        <tbody>
+        <tr>
+            <td>
+                <b style="font-size: larger;">调整小提琴图 bins</b>
+            </td>
+            <td style="padding-left: 10px;padding-right: 8px;">
+                <input id="violin_bins2" type="text"/>
+            </td>
+            <td style="padding-left: 10px;" title="切换模式：显示点或显示四分位">
+                <input type="checkbox" id="violin_status2" checked>
+            </td>
+            <td style="padding-left: 10px;">
+                <div class="input-group">
+{#                    <span class="input-group-addon">距离间隔大小（cm）</span>#}
+                    <input class="form-control" type="text" id="distance_interval" onkeyup="value=value.replace(/[^.\d]/g,'')" placeholder="请输入距离间隔（mm）" style="width: 168px;">
+                    <label class="input-group-addon btn btn-success" onclick="distanceAnalyse()">提交</label>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <div id="distance_hide_div" style="display: none;margin-top: 20px;">
+        分析类型：
+        <span>
+            <button id = "distance_vis_default" class="btn btn-default distance_button" onclick="distanceChartbyType(this,2)">H2</button>
+            <button class="btn btn-default distance_button" onclick="distanceChartbyType(this,3)">NWD</button>
+            <button class="btn btn-default distance_button" onclick="distanceChartbyType(this,4)">WD</button>
+        </span>
+        <a style="margin-left: 10px;cursor: pointer;" onclick="downloadDistanceResult()">下载计算结果</a>
+        <a style="margin-left: 15px;cursor: pointer;" onclick="downloadDistanceStatistic()">下载统计结果</a>
+
+    </div>
+    <!-- Create a div where the graph will take place -->
+    <div id="distance_vis" style="margin-top: 20px;"></div>
+</div>
+
+<div class="system_module"  style="display: none;">
+    <div id="out_result" style="margin-left: 12px; display: none;">
+        OUT LINKS:<br>
+        <span id="out_links"></span><br>
+        IN LINKS:<br>
+        <span id="in_links"></span><br>
+        <a id="out_result_dl" href="static/data/out_result_{{ userid }}.xls" download="out_result" style="cursor: pointer;">下载&nbsp;OUT&nbsp;分析结果</a>
+        <a id="out_result_s" style="margin-left: 20px;visibility: hidden;cursor: pointer;" onclick="downloadOUTStatistic()">下载区域统计结果</a>
+        <hr style="margin-top: 6px; margin-bottom: 18px;">
+    </div>
+    <table align="center">
+        <td style="width: 168px;">
+            <b style="font-size: larger;">当前h2阈值为：<span id="h2_threshold_value" style="color: red">0</span></b>
+        </td>
+        <td style="padding-right: 20px;">
+            <input id="h2_threshold2" class="form-control" type="text"/>
+        </td>
+        <td>
+            <button class="btn btn-default" onclick="outAnalyse(this,'OUT')">OUT</button>
+            <button class="btn btn-default" onclick="outAnalyse(this,'OUT/IN')">OUT / IN</button>
+            <button class="btn btn-default" onclick="outAnalyse(this,'OUT-IN')">OUT - IN</button>
+            <button class="btn btn-default" onclick="outAnalyse(this,'IN')">IN</button>
+        </td>
+        <td style="padding-left: 15px;">
+            <select id="zone_analyse_type" class="selectpicker" data-width="auto">
+                <option>median</option>
+                <option>mean</option>
+                <option>sum</option>
+                <option>max</option>
+                <option>min</option>
+            </select>
+            <button class="btn btn-warning" onclick="outZoneAnalyse()">区域分析</button>
+        </td>
+    </table>
+    <div id="out_chart" style="display: none; margin-top: 15px;">
+        <!--
+        <div id="out_in_river" style="display: inline-block;height: 500px; width: 58%; min-width: 800px"></div>
+        <div id="out_in_heat" style="display: inline-block;height: 500px; width: 40%; min-width: 600px"></div>
+        -->
+        <div id="out_in_river" style="width: 58%; float: left"></div>
+        <div style="width: 42%; float: left" align="center">
+            <table>
+                <tbody>
+                <tr>
+                    <td style="padding-right: 10px;">
+                        <div class="input-group">
+                            <span class="input-group-addon">min</span>
+                            <input class="form-control" type="text" id="bar_min" onkeyup="value=value.replace(/[^-.\d]/g,'')" style="width: 5em;">
+                        </div>
+                    </td>
+                    <td style="padding-right: 10px">
+                        <div class="input-group">
+                            <span class="input-group-addon">max</span>
+                            <input class="form-control" type="text" id="bar_max" onkeyup="value=value.replace(/[^.\d]/g,'')" style="width: 5em;">
+                        </div>
+                    </td>
+                    <td>
+                        <label class="btn btn-success" onclick="reset_heatmap()">重绘</label>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <div id="out_in_heat"></div>
+        </div>
+    </div>
+</div>
 
 </body>
 <script src="/static/js/seegvis.js"></script>

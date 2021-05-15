@@ -1,3 +1,4 @@
 .idea
+.history
 __pycache__
 static/data/out_result*.xls
