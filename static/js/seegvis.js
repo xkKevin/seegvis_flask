@@ -187,7 +187,8 @@ function readToArray(data) {
 function showCoordinate(obj) {
     let files = obj.files;
     // console.log(files,files[0].name);
-    $("#coordinate_file_name").text("当前坐标文件：" + files[0].name);
+    vue.coordinate_file = "当前坐标文件：" + files[0].name;
+    // $("#coordinate_file_name").text("当前坐标文件：" + files[0].name);
     if (files[0]) {
         var reader = new FileReader();
         reader.readAsText(files[0]);

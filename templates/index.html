@@ -28,7 +28,7 @@
 
     <script src="/static/js/d3.v4.js"></script>
     <script src="/static/js/d3-scale-chromatic.v1.min.js"></script>
-
+    <script src="/static/js/vue-2.4.0.js"></script>
     <link rel="stylesheet" href="/static/css/seegvis.css">
     <!-- 下面是css内容-->
     <style>
@@ -126,7 +126,7 @@
 
 </head>
 <body>
-    <div class = "Window">
+    <div class = "Window" id="Window">
         <div class = "TitleHead">
             <div id = "Title">SEEGVIS</div>
             <form method="post" action="/" enctype="multipart/form-data" style="display: inline;padding-left: 30px;">
@@ -136,7 +136,7 @@
                 {% else %}
                     更改数据文件：<input type="file" accept=".mat" name="up_file" class="file_mat button"/>
                     <input type="submit" value="更改" class="submit_mat button"/>
-                    <span style="padding-left: 20px;">当前上传的数据文件为：<font color="red">{{ file_name }}</font></span>
+                    <span style="padding-left: 30px;">当前上传的数据文件为：<font color="red">(( data_file ))</font></span>
                 {% endif %}
                 <input type="hidden" value="{{ userid }}" name="userid"/>
             </form>
@@ -384,7 +384,7 @@
             <div style="padding-left: 10px;">
                 上传电极点空间坐标：<input type="file" accept=".txt,.csv" id="coordinate_file" class="button"
                                      onchange="showCoordinate(this)"/>
-                <span id="coordinate_file_name"></span>
+                <span>(( coordinate_file ))</span>
             </div>
             <div id="electrodes" style="margin-top: 10px; padding-left: 15px; height: calc(100% - 80px)"></div>
         </div>
@@ -507,6 +507,15 @@
 <script src="/static/js/seegvis.js"></script>
 <script src="/static/js/visChart.js"></script>
 <script>
+    var vue = new Vue({
+       el: '#Window',
+       data: {
+           data_file: "",
+           coordinate_file: ""
+       },
+        delimiters: ["((", "))"],  // delimiters可以修改模板符号，默认是两个花括号，和jinjia2有冲突
+    });
+
     var fc_info = {{ fc_info | d('null') | safe }}; // 注意： 冒号后面不能有空格！ 引号中可以是对象，如 :"{xk:12}"，注：这里的null就是实际的null，不是字符串，如果要用字符串的话得这样写：d('`null`') 加反引号
     var init = {{ file_name | d('null') | safe }};  // 注：safe表示渲染时不转语义
     var msg = {{ msg | d('null') | safe }};
@@ -636,6 +645,7 @@
     var elen = 0; // 电极的个数
     var zone_elen_warn = "数字越界！数字范围应为：0至";
     if (init){
+        vue.data_file = init;
         elen = fc_info["electrode_names"].length;
         zone_elen_warn = zone_elen_warn + (elen - 1);
         time_slider = new Slider('#time_slider', {
